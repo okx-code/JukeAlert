@@ -5,7 +5,7 @@
 	<groupId>com.untamedears</groupId>
 	<artifactId>JukeAlert</artifactId>
 	<packaging>jar</packaging>
-	<version>1.6.3</version>
+	<version>1.6.4</version>
 	<name>JukeAlert</name>
 	<url>https://github.com/DevotedMC/JukeAlert/</url>
 
@@ -38,7 +38,7 @@
 		<dependency>
 			<groupId>org.spigotmc</groupId>
 			<artifactId>spigot-api</artifactId>
-			<version>1.12-R0.1-SNAPSHOT</version>
+			<version>1.12.2-R0.1-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
