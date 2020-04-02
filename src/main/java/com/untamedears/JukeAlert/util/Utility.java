@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 
+import java.util.function.Function;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -57,7 +58,7 @@ public class Utility {
 		}
 	}
 
-	public static void notifyGroup(Snitch snitch, TextComponent message) throws SQLException {
+	public static void notifyGroup(Snitch snitch, Function<Player, TextComponent> messageFunction) throws SQLException {
 
 		Group sG = snitch.getGroup();
 		if (sG == null) {
@@ -76,7 +77,7 @@ public class Utility {
 		for (Player player : iter) {
 			if (NameAPI.getGroupManager().hasAccess(snitch.getGroup(), player.getUniqueId(),
 					PermissionType.getPermission("SNITCH_NOTIFICATIONS"))) {
-				RateLimiter.sendMessage(player, message);
+				RateLimiter.sendMessage(player, messageFunction.apply(player));
 			}
 		}
 	}
@@ -154,5 +155,39 @@ public class Utility {
 			return cursorSnitch;
 		}
 		return findClosestSnitch(player.getLocation(), perm, player.getUniqueId());
+	}
+
+	public static double getAngle(Snitch snitch, Player player) {
+		int x = snitch.getX();
+		int z = snitch.getZ();
+
+		double px = player.getLocation().getX();
+		double pz = player.getLocation().getZ();
+
+		double angle = Math.toDegrees(Math.atan2(x - px, z - pz));
+		if (angle < 0) {
+			angle += 360;
+		}
+		return angle;
+	}
+
+	public static String getCompassDirection(double angle) {
+		if (angle >= 337 || angle < 22) {
+			return "S";
+		} else if (angle < 67) {
+			return "SE";
+		} else if (angle < 112) {
+			return "E";
+		} else if (angle < 157) {
+			return "NE";
+		} else if (angle < 202) {
+			return "N";
+		} else if (angle < 247) {
+			return "NW";
+		} else if (angle < 292) {
+			return "W";
+		} else {
+			return "SW";
+		}
 	}
 }
