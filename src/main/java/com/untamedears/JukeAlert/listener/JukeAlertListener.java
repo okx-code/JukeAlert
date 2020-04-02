@@ -5,6 +5,7 @@ import static com.untamedears.JukeAlert.util.Utility.isDebugging;
 import static com.untamedears.JukeAlert.util.Utility.immuneToSnitch;
 import static com.untamedears.JukeAlert.util.Utility.notifyGroup;
 
+import com.untamedears.JukeAlert.util.Utility;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Set;
@@ -118,14 +119,11 @@ public class JukeAlertListener implements Listener {
 				snitch.imposeSnitchTax();
 				inList.add(snitch);
 				try {
-					TextComponent message = new TextComponent(ChatColor.AQUA + " * " + player.getDisplayName()
-						+ " logged in to snitch at "
-						+ snitch.getName() + " [" + snitch.getLoc().getWorld().getName() + " " + snitch.getX() +
-						" " + snitch.getY() + " " + snitch.getZ() + "]");
-					String hoverText = snitch.getHoverText(null, null);
-					message.setHoverEvent(
-						new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(hoverText).create()));
-					notifyGroup(snitch, message);
+					final String type = "logged in to snitch";
+
+					notifyGroup(snitch, to -> getSnitchMessage(type, snitch, player, to));
+
+					TextComponent message = getSnitchMessage(type, snitch, player, null);
 
 					if (mercury.isEnabled() && plugin.getConfigManager().getBroadcastAllServers()) {
 						mercury.sendMessage(snitch.getGroup().getName() + " " + message, "jukealert-login");
@@ -160,14 +158,11 @@ public class JukeAlertListener implements Listener {
 			if (!immuneToSnitch(snitch, accountId)) {
 				snitch.imposeSnitchTax();
 				try {
-					TextComponent message = new TextComponent(ChatColor.AQUA + " * " + player.getDisplayName()
-						+ " logged out in snitch at "
-						+ snitch.getName() + " [" + snitch.getLoc().getWorld().getName() + " " + snitch.getX() +
-						" " + snitch.getY() + " " + snitch.getZ() + "]");
-					String hoverText = snitch.getHoverText(null, null);
-					message.setHoverEvent(
-						new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(hoverText).create()));
-					notifyGroup(snitch, message);
+					final String type = "logged out in snitch";
+
+					notifyGroup(snitch, to -> getSnitchMessage(type, snitch, player, to));
+
+					TextComponent message = getSnitchMessage(type, snitch, player, null);
 
 					if (mercury.isEnabled() && plugin.getConfigManager().getBroadcastAllServers()) {
 						mercury.sendMessage(snitch.getGroup().getName() + " " + message, "jukealert-logout");
@@ -544,14 +539,11 @@ public class JukeAlertListener implements Listener {
 								continue;
 							} else {
 								try {
-									TextComponent message = new TextComponent(ChatColor.AQUA + " * "
-										+ player.getDisplayName() + " entered snitch at "
-										+ snitch.getName() + " [" + snitch.getLoc().getWorld().getName() + " "
-										+ snitch.getX() + " " + snitch.getY() + " " + snitch.getZ() + "]");
-									String hoverText = snitch.getHoverText(null, null);
-									message.setHoverEvent(
-										new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(hoverText).create()));
-									notifyGroup(snitch, message);
+									final String type = "entered snitch";
+
+									notifyGroup(snitch, to -> getSnitchMessage(type, snitch, player, to));
+
+									TextComponent message = getSnitchMessage(type, snitch, player, null);
 
 									if (mercury.isEnabled() && plugin.getConfigManager().getBroadcastAllServers()) {
 										Group g = snitch.getGroup();
@@ -601,6 +593,45 @@ public class JukeAlertListener implements Listener {
 			rmList.add(snitch);
 		}
 		inList.removeAll(rmList);
+	}
+
+	private TextComponent getSnitchMessage(String type, Snitch snitch, Player hit, Player to) {
+		TextComponent message = new TextComponent(getPlainSnitchMessage(type, snitch, hit, to));
+
+		String hoverText = snitch.getHoverText(null, null);
+		message.setHoverEvent(
+				new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(hoverText).create()));
+
+		return message;
+	}
+
+	private String getPlainSnitchMessage(String type, Snitch snitch, Player hit, Player to) {
+		//  "&b * %s %s at %s [%s %s %s %s] %sm %s"
+		/*TextComponent message = new TextComponent(ChatColor.AQUA + " * "
+				+ player.getDisplayName() + " entered snitch at "
+				+ snitch.getName() + " [" + snitch.getLoc().getWorld().getName() + " "
+				+ snitch.getX() + " " + snitch.getY() + " " + snitch.getZ() + "] ");*/
+
+		String format = plugin.getConfigManager().getSnitchMessage();
+		format = ChatColor.translateAlternateColorCodes('&', format);
+
+		String playerName = hit.getDisplayName();
+		String snitchName = snitch.getName();
+		String snitchWorld = snitch.getLoc().getWorld().getName();
+		int x = snitch.getX();
+		int y = snitch.getY();
+		int z = snitch.getZ();
+		int distance;
+		String compassDirection;
+		if (to == null) {
+			distance = 0;
+			compassDirection = "";
+		} else {
+			distance = (int) to.getLocation().distance(snitch.getLoc());
+			compassDirection = Utility.getCompassDirection(Utility.getAngle(snitch, to));
+		}
+
+		return String.format(format, playerName, type, snitchName, snitchWorld, x, y, z, distance, compassDirection);
 	}
 
 	// Exceptions:  No exceptions must be raised from this for any reason

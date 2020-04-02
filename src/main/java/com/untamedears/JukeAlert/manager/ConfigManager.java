@@ -66,6 +66,8 @@ public class ConfigManager {
 
 	private boolean broadcastAllServers;
 
+	private String snitchMessage;
+
 	private FileConfiguration config;
 
 	public ConfigManager() {
@@ -119,6 +121,7 @@ public class ConfigManager {
 		displayOwnerOnBreak = config.getBoolean("settings.displayOwnerOnSnitchBreak", true);
 		softDelete = config.getBoolean("settings.softDelete", true);
 		multipleWorldSupport = config.getBoolean("settings.multipleWorldSupport", false);
+		snitchMessage = config.getString("settings.snitchMessage", "&b * %s %s at %s [%s %s %s %s] %sm %s");
 
 		broadcastAllServers = config.getBoolean("mercury.broadcastallservers", false);
 	}
@@ -301,5 +304,9 @@ public class ConfigManager {
 	public boolean getBroadcastAllServers() {
 
 		return broadcastAllServers;
+	}
+
+	public String getSnitchMessage() {
+		return snitchMessage;
 	}
 }
