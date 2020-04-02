@@ -46,20 +46,23 @@ public class SnitchLogGUI {
 
 		MultiPageView view = new MultiPageView(player, constructContent(), snitch.getName().substring(0,
 			Math.min(32, snitch.getName().length())), true);
-		view.setMenuSlot(constructClearClick(), 1);
 		if (snitch.shouldLog()) {
+			view.setMenuSlot(constructClearClick(), 1);
 			view.setMenuSlot(constructLeverToggleClick(), 5);
+		} else {
+			// this makes sure the view stays centred
+			view.setMenuSlot(new DecorationStack(null), 1);
 		}
-		view.setMenuSlot(constructNameChanceClick(), 2);
-		view.setMenuSlot(constructExitClick(), 4);
+ 		view.setMenuSlot(constructNameChanceClick(), 2);
 		view.setMenuSlot(constructInfoStack(), 3);
+		view.setMenuSlot(constructExitClick(), 4);
 		view.showScreen();
 	}
 
 	private IClickable constructInfoStack() {
 
 		ItemStack is = new ItemStack(Material.PAPER);
-		ISUtils.setName(is, ChatColor.GOLD + "Logs for " + snitch.getName());
+		ISUtils.setName(is, ChatColor.GOLD + (snitch.shouldLog() ? "Logs for " : "Entry snitch ") + snitch.getName());
 		ISUtils.addLore(
 			is, ChatColor.AQUA + "Located at " + snitch.getX() + ", " + snitch.getY() + ", " + snitch.getZ());
 		ISUtils.addLore(is, ChatColor.YELLOW + "Group: " + snitch.getGroup().getName());
