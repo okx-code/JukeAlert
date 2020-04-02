@@ -37,7 +37,7 @@ public class SnitchOverviewGUI {
 
 		List<IClickable> clicks = new LinkedList<IClickable>();
 		for (final Snitch snitch : snitches) {
-			ItemStack is = new ItemStack(Material.JUKEBOX);
+			ItemStack is = new ItemStack(snitch.shouldLog() ? Material.JUKEBOX : Material.NOTE_BLOCK);
 			ISUtils.setName(is, ChatColor.GOLD + snitch.getName());
 			ISUtils.addLore(
 				is, ChatColor.AQUA + "Located at " + snitch.getX() + ", " + snitch.getY() + ", " + snitch.getZ());
