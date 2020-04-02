@@ -1,5 +1,6 @@
 package com.untamedears.JukeAlert.gui;
 
+import com.untamedears.JukeAlert.util.Utility;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -166,21 +167,21 @@ public class SnitchLogGUI {
 			ItemStack is;
 			switch (action.getAction()) {
 				case BLOCK_BREAK:
-					is = new ItemStack(action.getMaterial());
+					is = Utility.materialToGuiItem(action.getMaterial());
 					ISUtils.setName(is, ChatColor.GOLD + action.getMaterial().toString()
 					                                   + " broken by " + action.getInitiateUser());
 					break;
 				case BLOCK_BURN:
-					is = new ItemStack(action.getMaterial());
+					is = Utility.materialToGuiItem(action.getMaterial());
 					ISUtils.setName(is, ChatColor.GOLD + action.getMaterial().toString() + " was destroyed by fire");
 					break;
 				case BLOCK_PLACE:
-					is = new ItemStack(action.getMaterial());
+					is = Utility.materialToGuiItem(action.getMaterial());
 					ISUtils.setName(is, ChatColor.GOLD + action.getMaterial().toString()
 					                                   + " placed by " + action.getInitiateUser());
 					break;
 				case BLOCK_USED:
-					is = new ItemStack(action.getMaterial());
+					is = Utility.materialToGuiItem(action.getMaterial());
 					ISUtils.setName(is,
 							ChatColor.GOLD + action.getMaterial().toString() + " used by " + action.getInitiateUser());
 					break;

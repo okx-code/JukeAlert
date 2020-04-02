@@ -11,6 +11,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.BlockIterator;
 
 import net.md_5.bungee.api.chat.TextComponent;
@@ -188,6 +189,69 @@ public class Utility {
 			return "W";
 		} else {
 			return "SW";
+		}
+	}
+
+	public static ItemStack materialToGuiItem(Material material) {
+		if (material.isItem()) {
+			return new ItemStack(material);
+		} else {
+			return new ItemStack(materialToItem(material));
+		}
+	}
+
+	private static Material materialToItem(Material material) {
+		// common materials that can't show up on a gui
+		switch (material) {
+			case CARROT:
+				return Material.CARROT_ITEM;
+			case CROPS:
+				return Material.SEEDS;
+			case POTATO:
+				return Material.POTATO_ITEM;
+			case BEETROOT_BLOCK:
+				return Material.BEETROOT_SEEDS;
+			case SUGAR_CANE_BLOCK:
+				return Material.SUGAR_CANE;
+			case BREWING_STAND:
+				return Material.BREWING_STAND_ITEM;
+			case CAULDRON:
+				return Material.CAULDRON_ITEM;
+			case SKULL:
+				return Material.SKULL_ITEM;
+			case WALL_SIGN:
+			case SIGN_POST:
+				return Material.SIGN;
+			case STANDING_BANNER:
+			case WALL_BANNER:
+				return Material.BANNER;
+			case FLOWER_POT:
+				return Material.FLOWER_POT_ITEM;
+			case REDSTONE_COMPARATOR_OFF:
+			case REDSTONE_COMPARATOR_ON:
+				return Material.REDSTONE_COMPARATOR;
+			case DIODE_BLOCK_OFF:
+			case DIODE_BLOCK_ON:
+				// redstone repeater
+				return Material.DIODE;
+			case DARK_OAK_DOOR:
+				return Material.DARK_OAK_DOOR_ITEM;
+			case ACACIA_DOOR:
+				return Material.ACACIA_DOOR_ITEM;
+			case BIRCH_DOOR:
+				return Material.BIRCH_DOOR_ITEM;
+			case SPRUCE_DOOR:
+				return Material.SPRUCE_DOOR_ITEM;
+			case JUNGLE_DOOR:
+				return Material.JUNGLE_DOOR_ITEM;
+			case IRON_DOOR_BLOCK:
+				return Material.IRON_DOOR;
+			case WOODEN_DOOR:
+				// minecraft why do you have wood door and wooden door??
+				return Material.WOOD_DOOR;
+			default:
+				// fallback to just use a stone block if we can't get any other item on the gui
+				return Material.STONE;
 		}
 	}
 }
