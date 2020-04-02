@@ -63,7 +63,6 @@ import com.untamedears.JukeAlert.external.VanishNoPacket;
 import com.untamedears.JukeAlert.manager.SnitchManager;
 import com.untamedears.JukeAlert.model.Snitch;
 
-import sun.security.krb5.internal.KDCOptions;
 import vg.civcraft.mc.citadel.Citadel;
 import vg.civcraft.mc.citadel.ReinforcementManager;
 import vg.civcraft.mc.citadel.events.ReinforcementCreationEvent;
