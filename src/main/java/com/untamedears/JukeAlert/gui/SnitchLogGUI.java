@@ -1,8 +1,11 @@
 package com.untamedears.JukeAlert.gui;
 
+import com.untamedears.JukeAlert.model.SuperSnitch;
 import com.untamedears.JukeAlert.util.Utility;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,9 +50,13 @@ public class SnitchLogGUI {
 
 		MultiPageView view = new MultiPageView(player, constructContent(), snitch.getName().substring(0,
 			Math.min(32, snitch.getName().length())), true);
-		if (snitch.shouldLog()) {
+		if (snitch.shouldLog() || snitch instanceof SuperSnitch) {
 			view.setMenuSlot(constructClearClick(), 1);
-			view.setMenuSlot(constructLeverToggleClick(), 5);
+			if (snitch instanceof SuperSnitch) {
+				view.setMenuSlot(constructSuperClick(), 5);
+			} else {
+				view.setMenuSlot(constructLeverToggleClick(), 5);
+			}
 		} else {
 			// this makes sure the view stays centred
 			view.setMenuSlot(new DecorationStack(null), 1);
@@ -60,10 +67,23 @@ public class SnitchLogGUI {
 		view.showScreen();
 	}
 
+	private IClickable constructSuperClick() {
+		SuperSnitch superSnitch = (SuperSnitch) this.snitch;
+		ItemStack is = new ItemStack(Material.CAULDRON_ITEM);
+		if (superSnitch.isSoftCulled()) {
+			ISUtils.setName(is, ChatColor.RED + "Super snitch currently soft culled");
+		} else {
+			ISUtils.setName(is, ChatColor.GOLD + "Fueled until: " + ChatColor.GRAY
+					+ DateTimeFormatter.ISO_LOCAL_DATE.format(superSnitch.getFuel().atOffset(
+					ZoneOffset.UTC)));
+		}
+		return new DecorationStack(is);
+	}
+
 	private IClickable constructInfoStack() {
 
 		ItemStack is = new ItemStack(Material.PAPER);
-		ISUtils.setName(is, ChatColor.GOLD + (snitch.shouldLog() ? "Logs for " : "Entry snitch ") + snitch.getName());
+		ISUtils.setName(is, ChatColor.GOLD + ((snitch.shouldLog() || snitch instanceof SuperSnitch) ? "Logs for " : "Entry snitch ") + snitch.getName());
 		ISUtils.addLore(
 			is, ChatColor.AQUA + "Located at " + snitch.getX() + ", " + snitch.getY() + ", " + snitch.getZ());
 		ISUtils.addLore(is, ChatColor.YELLOW + "Group: " + snitch.getGroup().getName());

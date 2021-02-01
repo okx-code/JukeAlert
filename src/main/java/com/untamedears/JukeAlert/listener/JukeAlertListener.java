@@ -1,23 +1,31 @@
 package com.untamedears.JukeAlert.listener;
 
 import static com.untamedears.JukeAlert.util.Utility.doesSnitchExist;
-import static com.untamedears.JukeAlert.util.Utility.isDebugging;
 import static com.untamedears.JukeAlert.util.Utility.immuneToSnitch;
+import static com.untamedears.JukeAlert.util.Utility.isDebugging;
 import static com.untamedears.JukeAlert.util.Utility.notifyGroup;
 
+import com.untamedears.JukeAlert.JukeAlert;
+import com.untamedears.JukeAlert.external.Mercury;
+import com.untamedears.JukeAlert.external.VanishNoPacket;
+import com.untamedears.JukeAlert.manager.SnitchManager;
+import com.untamedears.JukeAlert.model.Snitch;
+import com.untamedears.JukeAlert.model.SuperSnitch;
 import com.untamedears.JukeAlert.util.Utility;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.logging.Level;
-
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
-
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -44,6 +52,7 @@ import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -51,18 +60,12 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.material.Lever;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.spigotmc.event.entity.EntityDismountEvent;
 import org.spigotmc.event.entity.EntityMountEvent;
-
-import com.untamedears.JukeAlert.JukeAlert;
-import com.untamedears.JukeAlert.external.Mercury;
-import com.untamedears.JukeAlert.external.VanishNoPacket;
-import com.untamedears.JukeAlert.manager.SnitchManager;
-import com.untamedears.JukeAlert.model.Snitch;
-
 import vg.civcraft.mc.citadel.Citadel;
 import vg.civcraft.mc.citadel.ReinforcementManager;
 import vg.civcraft.mc.citadel.events.ReinforcementCreationEvent;
@@ -131,7 +134,11 @@ public class JukeAlertListener implements Listener {
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
-				if (snitch.shouldLog()) {
+				if (snitch.shouldLog() || snitch instanceof SuperSnitch) {
+					if (snitch instanceof SuperSnitch) {
+						player.sendMessage(ChatColor.RED + "You have entered a super snitch at "
+								+ ChatColor.GRAY + "(" + snitch.getX() + " " + snitch.getY() + " " + snitch.getZ() + ")");
+					}
 					plugin.getJaLogger().logSnitchLogin(snitch, location, player);
 
 					Location north = new Location(world, snitch.getX(), snitch.getY(), snitch.getZ() - 1);
@@ -170,7 +177,7 @@ public class JukeAlertListener implements Listener {
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
-				if (snitch.shouldLog()) {
+				if (snitch.shouldLog() || snitch instanceof SuperSnitch) {
 					plugin.getJaLogger().logSnitchLogout(snitch, location, player);
 				}
 			}
@@ -208,6 +215,10 @@ public class JukeAlertListener implements Listener {
 				player.sendMessage(
 					ChatColor.YELLOW + "You've placed a Noteblock; reinforce it to register it as an entry snitch.");
 			}
+		} else if (block.getType().equals(Material.CAULDRON)) {
+			if (!rm.isReinforced(loc)) {
+				player.sendMessage(ChatColor.YELLOW + "You've placed a Cauldron; reinforce it to register it as a super snitch.");
+			}
 		}
 	}
 
@@ -222,7 +233,8 @@ public class JukeAlertListener implements Listener {
 		}
 		boolean isJukebox = block.getType().equals(Material.JUKEBOX);
 		boolean isNoteblock = block.getType().equals(Material.NOTE_BLOCK);
-		if (!isJukebox && !isNoteblock) {
+		boolean isSuper = block.getType().equals(Material.CAULDRON);
+		if (!isJukebox && !isNoteblock && !isSuper) {
 			return;
 		}
 		Player player = event.getPlayer();
@@ -250,11 +262,26 @@ public class JukeAlertListener implements Listener {
 				snitchManager.getSnitch(loc.getWorld(), loc), owner.getName());
 			snitchManager.removeSnitch(snitch);
 			snitch.setGroup(owner);
+		} else if (isSuper) {
+			SuperSnitch superSnitch = new SuperSnitch(loc, owner, false, Instant.now());
+			if (!JukeAlert.getInstance().getSuperSnitchHandler().placeSnitch(player, superSnitch)) {
+				event.setCancelled(true);
+				return;
+			}
+
+			superSnitch.setId(plugin.getJaLogger().getLastSnitchID());
+			plugin.getJaLogger().logSnitchPlace(
+					player.getWorld().getName(), owner.getName(), "", loc.getBlockX(), loc.getBlockY(),
+					loc.getBlockZ(), 2, () -> {
+						plugin.getJaLogger().logSuperSnitchPlace(superSnitch.getId(), superSnitch.getFuel());
+					});
+			plugin.getJaLogger().increaseLastSnitchID();
+			snitch = superSnitch;
 		} else {
 			snitch = new Snitch(loc, owner, isJukebox, false);
 			plugin.getJaLogger().logSnitchPlace(
 				player.getWorld().getName(), owner.getName(), "", loc.getBlockX(), loc.getBlockY(),
-				loc.getBlockZ(), isJukebox);
+				loc.getBlockZ(), isJukebox ? 1 : 0, () -> {});
 			snitch.setId(plugin.getJaLogger().getLastSnitchID());
 			plugin.getJaLogger().increaseLastSnitchID();
 		}
@@ -268,6 +295,9 @@ public class JukeAlertListener implements Listener {
 		if (isJukebox) {
 			message = (ChatColor.AQUA + "You've created a snitch registered to the group " + snitchGroupName
 				+ ". To name it, type /janame.");
+		} else if (isSuper) {
+			message = ChatColor.AQUA + "You've created a " + ChatColor.GOLD + "super snitch " + ChatColor.AQUA + "registered to the group " + snitchGroupName
+					+ ". To name it, type /janame";
 		} else {
 			message = (ChatColor.AQUA + "You've created an entry snitch registered to the group " + snitchGroupName
 				+ ". To name it, type /janame.");
@@ -379,7 +409,7 @@ public class JukeAlertListener implements Listener {
 		if (block == null) {
 			return;
 		}
-		if (block.getType().equals(Material.JUKEBOX) || block.getType().equals(Material.NOTE_BLOCK)) {
+		if (block.getType().equals(Material.JUKEBOX) || block.getType().equals(Material.NOTE_BLOCK) || block.getType().equals(Material.CAULDRON)) {
 			Snitch snitch = snitchManager.getSnitch(block.getWorld(), block.getLocation());
 			if (snitch == null) {
 				return;
@@ -397,7 +427,11 @@ public class JukeAlertListener implements Listener {
 						snitchGroup = snitch.getGroup().getName();
 					}
 					TextComponent playerSnitchInfoMessage;
-					if (snitch.shouldLog()) {
+					if (snitch instanceof SuperSnitch) {
+						playerSnitchInfoMessage = new TextComponent(ChatColor.AQUA
+						+ "You've broken a " + ChatColor.GOLD + "super snitch " + ChatColor.AQUA + "registered to the group " + snitchGroup + ".");
+						JukeAlert.getInstance().getSuperSnitchHandler().breakSnitch(player, (SuperSnitch) snitch);
+					} else if (snitch.shouldLog()) {
 						playerSnitchInfoMessage = new TextComponent(ChatColor.AQUA
 							+ "You've broken a snitch registered to the group " + snitchGroup + ".");
 					} else {
@@ -411,8 +445,14 @@ public class JukeAlertListener implements Listener {
 				}
 			} else {
 				if (plugin.getConfigManager().isDisplayOwnerOnBreak()) {
+					String start;
+					if (snitch instanceof SuperSnitch) {
+						start = ChatColor.GOLD + "Super snitch";
+					} else {
+						start = ChatColor.AQUA + "Snitch";
+					}
 					Location loc = snitch.getLoc();
-					event.getPlayer().sendMessage(ChatColor.AQUA + "Snitch at [" + loc.getWorld().getName()
+					event.getPlayer().sendMessage(start + ChatColor.AQUA + " at [" + loc.getWorld().getName()
 						+ " " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + "] was on group "
 						+ snitch.getGroup().getName()
 						+ " which is owned by " + NameAPI.getCurrentName(snitch.getGroup().getOwner()));
@@ -568,7 +608,11 @@ public class JukeAlertListener implements Listener {
 									}
 								}
 							}
-							if (snitch.shouldLog()) {
+							if (snitch.shouldLog() || snitch instanceof SuperSnitch) {
+								if (snitch instanceof SuperSnitch) {
+									player.sendMessage(ChatColor.RED + "You have entered a super snitch at "
+											+ ChatColor.GRAY + "(" + snitch.getX() + " " + snitch.getY() + " " + snitch.getZ() + ")");
+								}
 								plugin.getJaLogger().logSnitchEntry(snitch, location, player);
 								Location north = new Location(world, snitch.getX(), snitch.getY(), snitch.getZ() - 1);
 								toggleLeverIfApplicable(snitch, north, true);

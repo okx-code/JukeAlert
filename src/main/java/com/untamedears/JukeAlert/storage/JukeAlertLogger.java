@@ -5,11 +5,14 @@
 
 package com.untamedears.JukeAlert.storage;
 
+import com.untamedears.JukeAlert.model.SuperSnitch;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -64,6 +67,7 @@ public class JukeAlertLogger {
 	private final Database db;
 
 	private final String snitchsTbl;
+	private final String superSnitchesTable;
 
 	private final String snitchDetailsTbl;
 
@@ -82,6 +86,8 @@ public class JukeAlertLogger {
 	private PreparedStatement deleteSnitchLogStmt;
 
 	private PreparedStatement insertNewSnitchStmt;
+	private PreparedStatement insertSuperSnitchStatement;
+	private PreparedStatement updateSuperSnitchStatement;
 
 	private PreparedStatement softDeleteSnitchStmt;
 
@@ -177,6 +183,7 @@ public class JukeAlertLogger {
 
 		logsPerPage = configManager.getLogsPerPage();
 		snitchsTbl = prefix + "snitchs";
+		superSnitchesTable = prefix + "super_snitches";
 		snitchDetailsTbl = prefix + "snitch_details";
 		mutedGroupsTbl = prefix + "muted_groups";
 
@@ -222,6 +229,15 @@ public class JukeAlertLogger {
 			+ "`snitch_should_log` BOOL,"
 			+ "PRIMARY KEY (`snitch_id`),"
 			+ "INDEX `idx_y` (`snitch_y` ASC));");
+
+		db.execute("CREATE TABLE IF NOT EXISTS `" + superSnitchesTable + "` ("
+				+ "`id` INT AUTO_INCREMENT PRIMARY KEY,"
+				+ "`f_snitch_id` INT(10) UNSIGNED,"
+				+ "`fuel` TIMESTAMP DEFAULT 0," // when the snitch will expire
+				+ "CONSTRAINT `fk_snitch_id`"
+				+ "  FOREIGN KEY (`f_snitch_id`) REFERENCES `" + snitchsTbl + "` (`snitch_id`)"
+				+ "  ON DELETE CASCADE)");
+
 		// Snitch Details
 		// Need to know:
 		//  Action: (killed, block break, block place, etc), can't be null
@@ -273,6 +289,8 @@ public class JukeAlertLogger {
 		db.silentExecute(String.format("ALTER TABLE %s ADD COLUMN (soft_delete BOOL NOT NULL DEFAULT 0);", snitchsTbl));
 		db.silentExecute(String.format(
 			"ALTER TABLE %s ADD COLUMN (soft_delete BOOL NOT NULL DEFAULT 0);", snitchDetailsTbl));
+
+		db.silentExecute(String.format("ALTER TABLE %s MODIFY COLUMN `snitch_should_log` TINYINT(2) UNSIGNED", snitchsTbl));
 
 		try {
 			this.plugin.getLogger().log(Level.INFO, "Adding the log_hour column");
@@ -472,7 +490,12 @@ public class JukeAlertLogger {
 	private void initializeStatements() {
 
 		getAllSnitchesByWorldStmt = db.prepareStatement(String.format(
-				"SELECT * FROM %s WHERE snitch_world = ? AND soft_delete = 0", snitchsTbl));
+				"SELECT `snitch_id`, `snitch_world`, `snitch_name`, `snitch_x`, `snitch_y`,"
+						+ "`snitch_z`, `snitch_group`, `snitch_cuboid_x`, `snitch_cuboid_y`,"
+						+ "`snitch_cuboid_z`, `snitch_should_log`, `last_semi_owner_visit_date`,"
+						+ "`allow_triggering_lever`, `soft_delete`, `fuel`"
+						+ "FROM %1$s LEFT JOIN %2$s ON %1$s.`snitch_id` = %2$s.`f_snitch_id`"
+						+ "WHERE snitch_world = ? AND soft_delete = 0", snitchsTbl, superSnitchesTable));
 
 		getLastSnitchID = db.prepareStatement(String.format(
 				"SHOW TABLE STATUS LIKE '%s'", snitchsTbl));
@@ -531,6 +554,11 @@ public class JukeAlertLogger {
 				"INSERT INTO %s (snitch_world, snitch_name, snitch_x, snitch_y, snitch_z, snitch_group, snitch_cuboid_x, snitch_cuboid_y, snitch_cuboid_z, snitch_should_log, last_semi_owner_visit_date,allow_triggering_lever)"
 				+ " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(),0)",
 				snitchsTbl));
+
+		insertSuperSnitchStatement = db.prepareStatement(String.format(
+				"INSERT INTO %s (f_snitch_id, fuel) VALUES (?, ?)", superSnitchesTable));
+		updateSuperSnitchStatement = db.prepareStatement(String.format(
+				"UPDATE %s SET fuel = ? WHERE f_snitch_id = ?", superSnitchesTable));
 
 		deleteSnitchLogStmt = db.prepareStatement(String.format(
 				"DELETE FROM %s WHERE snitch_id=?",
@@ -673,8 +701,21 @@ public class JukeAlertLogger {
 						"Group not found for (%s,%d,%d,%d): %s",
 						world_.getName(), (int) x, (int) y, (int) z, groupName));
 				}
-				Snitch snitch = new Snitch(location, group, rs_.getBoolean("snitch_should_log"),
-					rs_.getBoolean("allow_triggering_lever"));
+				int shouldLog = rs_.getInt("snitch_should_log");
+				Snitch snitch;
+				boolean lever = rs_.getBoolean("allow_triggering_lever");
+				if (shouldLog == 0 || shouldLog == 1) {
+					snitch = new Snitch(location, group, shouldLog == 1,
+							lever);
+				} else if (shouldLog == 2) {
+					Timestamp fuel = rs_.getTimestamp("fuel");
+					if (fuel == null) {
+						return getNextSnitch();
+					}
+					snitch = new SuperSnitch(location, group, lever, fuel.toInstant());
+				} else {
+					throw new IllegalArgumentException("Should log: " + shouldLog);
+				}
 				snitch.setId(rs_.getInt("snitch_id"));
 				snitch.setName(rs_.getString("snitch_name"));
 				return snitch;
@@ -1255,7 +1296,7 @@ public class JukeAlertLogger {
 
 	// Logs the snitch being placed at World, x, y, z in the database
 	public void logSnitchPlace(final String world, final String group, final String name,
-			final int x, final int y, final int z, final boolean shouldLog) {
+			final int x, final int y, final int z, final int type, Runnable callback) {
 
 		final ConfigManager lockedConfigManager = this.configManager;
 		Bukkit.getScheduler().runTaskAsynchronously(plugin, new Runnable() {
@@ -1273,14 +1314,39 @@ public class JukeAlertLogger {
 						insertNewSnitchStmt.setInt(7, lockedConfigManager.getDefaultCuboidSize());
 						insertNewSnitchStmt.setInt(8, lockedConfigManager.getDefaultCuboidSize());
 						insertNewSnitchStmt.setInt(9, lockedConfigManager.getDefaultCuboidSize());
-						insertNewSnitchStmt.setBoolean(10, shouldLog);
+						insertNewSnitchStmt.setInt(10, type);
 						insertNewSnitchStmt.execute();
 					}
+					callback.run();
 				} catch (SQLException ex) {
 					Logger.getLogger(JukeAlertLogger.class.getName()).log(Level.SEVERE, null, ex);
 				}
 			}
 		});
+	}
+
+	public void logSuperSnitchPlace(int snitchId, Instant fuel) {
+		try {
+			synchronized (insertSuperSnitchStatement) {
+				insertSuperSnitchStatement.setInt(1, snitchId);
+				insertSuperSnitchStatement.setTimestamp(2, new Timestamp(fuel.toEpochMilli()));
+				insertSuperSnitchStatement.execute();
+			}
+		} catch (SQLException ex) {
+			Logger.getLogger(JukeAlertLogger.class.getName()).log(Level.SEVERE, null, ex);
+		}
+	}
+
+	public void updateSuperSnitch(int snitchId, Instant fuel) {
+		try {
+			synchronized (updateSuperSnitchStatement) {
+				updateSuperSnitchStatement.setTimestamp(1, new Timestamp(fuel.toEpochMilli()));
+				updateSuperSnitchStatement.setInt(2, snitchId);
+				updateSuperSnitchStatement.execute();
+			}
+		} catch (SQLException ex) {
+			Logger.getLogger(JukeAlertLogger.class.getName()).log(Level.SEVERE, null, ex);
+		}
 	}
 
 	// Removes the snitch at the location of World, X, Y, Z from the database

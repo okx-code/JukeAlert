@@ -84,6 +84,9 @@ public class Utility {
 	}
 
 	public static boolean immuneToSnitch(Snitch snitch, UUID accountId) {
+		if (snitch.isSoftCulled()) {
+			return true;
+		}
 
 		Group group = snitch.getGroup();
 		if (group == null) {
@@ -120,7 +123,7 @@ public class Utility {
 		int y = loc.getBlockY();
 		int z = loc.getBlockZ();
 		Material type = world.getBlockAt(x, y, z).getType();
-		boolean exists = Material.NOTE_BLOCK == type || Material.JUKEBOX == type;
+		boolean exists = Material.NOTE_BLOCK == type || Material.JUKEBOX == type || Material.CAULDRON == type;
 		if (!exists && shouldCleanup) {
 			final JukeAlert plugin = JukeAlert.getInstance();
 			plugin.log("Removing ghost snitch '" + snitch.getName() + "' at x:" + x + " y:" + y + " z:" + z);

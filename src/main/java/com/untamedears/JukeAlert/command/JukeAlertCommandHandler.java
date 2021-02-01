@@ -13,6 +13,7 @@ import com.untamedears.JukeAlert.command.commands.JaToggleLeversCommand;
 import com.untamedears.JukeAlert.command.commands.LookupCommand;
 import com.untamedears.JukeAlert.command.commands.NameCommand;
 
+import com.untamedears.JukeAlert.command.commands.RefuelCommand;
 import vg.civcraft.mc.civmodcore.command.CommandHandler;
 
 public class JukeAlertCommandHandler extends CommandHandler {
@@ -31,5 +32,6 @@ public class JukeAlertCommandHandler extends CommandHandler {
 		addCommands(new JaMuteCommand());
 		addCommands(new ConfigCommand());
 		addCommands(new JaToggleLeversCommand());
+		addCommands(new RefuelCommand());
 	}
 }

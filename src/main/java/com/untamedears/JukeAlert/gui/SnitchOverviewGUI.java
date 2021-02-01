@@ -1,5 +1,9 @@
 package com.untamedears.JukeAlert.gui;
 
+import com.untamedears.JukeAlert.model.SuperSnitch;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -37,12 +41,16 @@ public class SnitchOverviewGUI {
 
 		List<IClickable> clicks = new LinkedList<IClickable>();
 		for (final Snitch snitch : snitches) {
-			ItemStack is = new ItemStack(snitch.shouldLog() ? Material.JUKEBOX : Material.NOTE_BLOCK);
+			ItemStack is = new ItemStack(snitch instanceof SuperSnitch ? Material.CAULDRON_ITEM : (snitch.shouldLog() ? Material.JUKEBOX : Material.NOTE_BLOCK));
 			ISUtils.setName(is, ChatColor.GOLD + snitch.getName());
 			ISUtils.addLore(
 				is, ChatColor.AQUA + "Located at " + snitch.getX() + ", " + snitch.getY() + ", " + snitch.getZ());
 			ISUtils.addLore(is, ChatColor.YELLOW + "Group: " + snitch.getGroup().getName());
 			ISUtils.addLore(is, ChatColor.GREEN + "Click to view the logs");
+			if (snitch instanceof SuperSnitch) {
+				ISUtils.addLore(is, ChatColor.GOLD + "Fueled until: " + ChatColor.GRAY
+						+ DateTimeFormatter.ISO_LOCAL_DATE.format(((SuperSnitch) snitch).getFuel().atOffset(ZoneOffset.UTC)));
+			}
 			clicks.add(new Clickable(is) {
 				@Override
 				public void clicked(Player p) {

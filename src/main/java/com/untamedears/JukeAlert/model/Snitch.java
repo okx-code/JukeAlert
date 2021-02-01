@@ -30,9 +30,9 @@ public class Snitch implements QTBox, Comparable<Snitch> {
 
 	private int maxx;
 
-	private int miny;
+	protected int miny;
 
-	private int maxy;
+	protected int maxy;
 
 	private int minz;
 
@@ -308,5 +308,9 @@ public class Snitch implements QTBox, Comparable<Snitch> {
 			"Location: %s\nGroup: %s%s%s%s%s",
 			snitchLocation, snitchGroup, typeFmt, cullTimeFmt, previousNameFmt, nameFmt);
 		return hoverText;
+	}
+
+	public boolean isSoftCulled() {
+		return false;
 	}
 }

@@ -5,7 +5,7 @@
 	<groupId>com.untamedears</groupId>
 	<artifactId>JukeAlert</artifactId>
 	<packaging>jar</packaging>
-	<version>1.6.4</version>
+	<version>1.6.5</version>
 	<name>JukeAlert</name>
 	<url>https://github.com/DevotedMC/JukeAlert/</url>
 
@@ -76,6 +76,12 @@
 			<artifactId>CivModCore</artifactId>
 			<version>1.6.0</version>
 			<scope>provided</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 	</dependencies>
 

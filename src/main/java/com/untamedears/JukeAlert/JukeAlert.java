@@ -1,5 +1,7 @@
 package com.untamedears.JukeAlert;
 
+import com.untamedears.JukeAlert.supersnitch.DefaultSuperSnitchHandler;
+import com.untamedears.JukeAlert.supersnitch.SuperSnitchHandler;
 import java.util.LinkedList;
 import java.util.logging.Level;
 
@@ -35,6 +37,8 @@ public class JukeAlert extends ACivMod {
 	private GroupMediator groupMediator;
 
 	private JaListCommand jaListCommand;
+
+	private SuperSnitchHandler superSnitchHandler = new DefaultSuperSnitchHandler();
 
 	@Override
 	public void onEnable() {
@@ -93,6 +97,7 @@ public class JukeAlert extends ACivMod {
 		PermissionType.registerPermission("LOOKUP_SNITCH", (LinkedList<PlayerType>) modAndAbove.clone());
 		PermissionType.registerPermission("CLEAR_SNITCHLOG", (LinkedList<PlayerType>) modAndAbove.clone());
 		PermissionType.registerPermission("SNITCH_TOGGLE_LEVER", (LinkedList<PlayerType>) modAndAbove.clone());
+		PermissionType.registerPermission("SNITCH_REFUEL", (LinkedList<PlayerType>) modAndAbove.clone());
 	}
 
 	public static JukeAlert getInstance() {
@@ -128,6 +133,14 @@ public class JukeAlert extends ACivMod {
 	public JaListCommand getJaListCommand() {
 
 		return jaListCommand;
+	}
+
+	public SuperSnitchHandler getSuperSnitchHandler() {
+		return superSnitchHandler;
+	}
+
+	public void setSuperSnitchHandler(SuperSnitchHandler superSnitchHandler) {
+		this.superSnitchHandler = superSnitchHandler;
 	}
 
 	// Logs a message with the level of Info

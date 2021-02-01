@@ -1,5 +1,6 @@
 package com.untamedears.JukeAlert.chat;
 
+import com.untamedears.JukeAlert.model.SuperSnitch;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -52,7 +53,7 @@ public class SendSnitchInfo implements Runnable {
 	public void run() {
 
 		TextComponent playerSnitchInfoMessage;
-		if (!this.snitch.shouldLog()) {
+		if (!this.snitch.shouldLog() && !(snitch instanceof SuperSnitch)) {
 			if (this.snitch.getName() == null || this.snitch.getName().trim().isEmpty()) {
 				playerSnitchInfoMessage = new TextComponent(ChatColor.AQUA + " * Unnamed entry snitch");
 			} else {

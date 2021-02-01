@@ -45,6 +45,10 @@ commands:
   jatogglelevers:
     description:  Sets flag that indicates if a juke should trigger a lever.
     usage: /jatogglelevers <0|1>
+  jarefuel:
+    description: Refuel super snitches
+    usage: /jarefuel <'max' | stamina(int)>
+    aliases: [jaf, jafuel]
 permissions:
   jukealert.admin.jagroup:
     description: Use /jagroup even when not the owner
